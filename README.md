@@ -31,3 +31,7 @@ Flags:
 
 - [ ] Add tests
 - [ ] Use a template file for the email body, like [contact.html](./contact.html)
+
+## License
+
+MIT
