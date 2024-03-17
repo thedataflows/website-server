@@ -1,0 +1,39 @@
+## Website Hostname, default `localhost`
+host: example.com
+static_dir: ./static
+
+## Http settings
+http:
+  listen_on: ":3000"
+  use_proxyproto: true
+  not_found: /404.html
+
+## Mail settings
+mail:
+  mail_url: smtp://localhost:1025
+  mail_tls_skip_verify: true
+  ## For better security, set env MAIL_USERNAME
+  # mail_username: user
+  ## For better security, set env MAIL_PASSWORD
+  # mail_password: pass
+
+## Server routes
+routes:
+  - path: /contact
+    method: POST
+    mail_template: |
+      Site: {{.SiteURL}}<br/>
+      Name: {{.UserName}}<br/>
+      Email: {{.UserEmail}}<br/>
+      Message: {{.UserMessage}}
+    # mail_template_file: contact.html
+    mail_subject: "Contact Form"
+    mail_from: no-reply@example.com
+    mail_to:
+      - contact@example.com
+    form_fields_mapping:
+      UserName: name
+      UserEmail: email
+      UserMessage: message
+    response_html_tag: |
+      <div><h4>%s</h4></div>

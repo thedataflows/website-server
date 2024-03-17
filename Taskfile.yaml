@@ -1,0 +1,173 @@
+# https://taskfile.dev
+
+version: '3'
+
+# output: prefixed
+silent: false
+
+vars:
+  OS:
+    sh: |
+      OS=${OS:-$(uname -s)}
+      case $OS in
+        Linux)
+          printf "linux"
+          ;;
+        Darwin)
+          printf "darwin"
+          ;;
+        MINGW* | MSYS* | CYGWIN* | Windows_NT)
+          printf "windows"
+          ;;
+        *)
+          printf "$OS"
+          ;;
+      esac
+  PD:
+    sh: |
+      case {{.OS}} in
+        windows)
+          printf ";"
+          ;;
+        *)
+          printf ":"
+          ;;
+      esac
+  CNI_CLI: podman
+  EXE:
+    sh: |
+      case {{.OS}} in
+        windows)
+          printf ".exe"
+          ;;
+        *)
+          printf ""
+          ;;
+      esac
+
+tasks:
+  default:
+    cmds:
+      - task -a
+  build:
+    desc: "Build the app using goreleaser"
+    cmds:
+      - |
+        PATH="../bin{{.PD}}$PATH"
+        goreleaser build --clean --snapshot --single-target --id "." --output ./bin/ws{{.EXE}}
+
+  run:
+    desc: "Run the app in development mode"
+    cmds:
+      - task: start_mailpit
+      - |
+        PATH="../bin{{.PD}}$PATH"
+        go run .
+  lint:
+    desc: "Run linters"
+    deps:
+      - install_golangci-lint
+    cmds:
+      - golangci-lint run --verbose --color always .
+  install_dev:
+    desc: "Install development tools"
+    cmds:
+      - task: install_mailpit
+  tidy:
+    desc: "Tidy go modules"
+    cmds:
+      - go mod tidy
+      # - go mod vendor
+  test:
+    desc: "Run tests"
+    cmds:
+      - go test -v ./... -cover -race
+  container:
+    desc: "Build container image"
+    vars:
+      APP:
+        sh: grep module go.mod | cut -d/ -f3
+    cmds:
+      - "{{.CNI_CLI}} build -t {{.APP}}:latest ."
+
+  ## mailpit
+  latest_mailpit:
+    silent: true
+    vars:
+      LATEST:
+        sh: curl --silent "https://api.github.com/repos/axllent/mailpit/releases/latest" | jq -r .tag_name
+    cmds:
+      - |
+        [[ "{{.LATEST}}" == "{{.VERSION}}" ]] || echo "[ATTENTION] mailpit latest release: {{.LATEST}}"
+  install_mailpit:
+    silent: true
+    vars:
+      VERSION: v1.15.0
+    deps:
+      - vars:
+          VERSION: "{{.VERSION}}"
+        task: latest_mailpit
+    status:
+      - |
+        PATH="bin{{.PD}}$PATH"
+        [[ $(mailpit version | awk '{print $2}') == "{{.VERSION}}" ]]
+    cmds:
+      - |
+        echo "Installing mailpit {{.VERSION}}"
+        PATH="bin{{.PD}}$PATH"
+        EGET_BIN="bin" eget axllent/mailpit --tag {{.VERSION}}
+  start_mailpit:
+    vars:
+      SERVER_NAME: mailpit
+    deps:
+      - install_mailpit
+    status:
+      - |
+        PATH="bin{{.PD}}$PATH"
+        PID=$(cat bin/{{.SERVER_NAME}}.pid 2>/dev/null || true)
+        [[ -n "$PID" ]] && ps -p $PID
+    cmds:
+      - echo "Starting {{.SERVER_NAME}} in the background. Pressing Ctrl+C will still stop it."
+      - |
+        PATH="bin{{.PD}}$PATH"
+        export PID_FILE="bin/{{.SERVER_NAME}}.pid"
+        bash -c 'nohup {{.SERVER_NAME}} --verbose --db-file bin/{{.SERVER_NAME}}.db >bin/{{.SERVER_NAME}}.log 2>&1 & echo "$!" > $PID_FILE && echo "PID $(cat $PID_FILE)"'& sleep 1
+  stop_mailpit:
+    vars:
+      SERVER_NAME: mailpit
+    status:
+      - cat bin/{{.SERVER_NAME}}.pid | xargs ps -fp && false
+    cmds:
+      - echo "Stopping {{.SERVER_NAME}}"
+      - |
+        SERVER_NAME={{.SERVER_NAME}}
+        {{.STOP_SERVER_TEMPLATE}}
+
+  ## golangci-lint
+  latest_golangci-lint:
+    silent: true
+    vars:
+      LATEST:
+        sh: curl --silent "https://api.github.com/repos/golangci/{{.NAME}}/releases/latest" | jq -r .tag_name
+    cmds:
+      - |
+        [[ "{{.LATEST}}" == "v{{.VERSION}}" ]] || echo "[ATTENTION] {{.NAME}} latest release: {{.LATEST}}"
+  install_golangci-lint:
+    silent: true
+    vars:
+      NAME: golangci-lint
+      VERSION: 1.56.2
+    deps:
+      - vars:
+          NAME: "{{.NAME}}"
+          VERSION: "{{.VERSION}}"
+        task: latest_{{.NAME}}
+    status:
+      - |
+        PATH="bin{{.PD}}$PATH"
+        [[ $({{.NAME}} --version | awk '{print $4}') == "{{.VERSION}}" ]]
+    cmds:
+      - |
+        echo "Installing {{.NAME}} {{.VERSION}}"
+        PATH="bin{{.PD}}$PATH"
+        EGET_BIN="bin" eget golangci/{{.NAME}} --tag v{{.VERSION}}
