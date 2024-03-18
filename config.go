@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/goccy/go-yaml"
@@ -21,9 +22,11 @@ type RootConfig struct {
 }
 
 type HTTPConfig struct {
-	ListenOn      string `yaml:"listen_on,omitempty"`
-	UseProxyProto bool   `yaml:"use_proxyproto,omitempty"`
-	NotFound      string `yaml:"not_found,omitempty"`
+	ListenOn        string        `yaml:"listen_on,omitempty"`
+	UseProxyProto   bool          `yaml:"use_proxyproto,omitempty"`
+	NotFound        string        `yaml:"not_found,omitempty"`
+	CacheExpiration time.Duration `yaml:"cache_expiration,omitempty"`
+	CacheControl    bool          `yaml:"cache_control,omitempty"`
 }
 
 type MailConfig struct {

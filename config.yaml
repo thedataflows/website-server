@@ -7,6 +7,8 @@ http:
   listen_on: ":3000"
   use_proxyproto: true
   not_found: /404.html
+  cache_expiration: 24h
+  cache_control: true
 
 ## Mail settings
 mail:

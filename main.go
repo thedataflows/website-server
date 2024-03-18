@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/pires/go-proxyproto"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -188,6 +189,13 @@ func (srv *FrontendServer) NewFiber() *fiber.App {
 	// Add Fiber middlewares. Order is relevant!
 	app.Use(srv.errorHandlingMiddleware)
 	app.Use(srv.loggingMiddleware)
+	app.Use(cache.New(cache.Config{
+		Next: func(c *fiber.Ctx) bool {
+			return c.Query("noCache") == "true"
+		},
+		Expiration:   srv.config.Root.HTTP.CacheExpiration,
+		CacheControl: srv.config.Root.HTTP.CacheControl,
+	}))
 
 	// Handle static files.
 	app.Static("/", srv.config.Root.StaticDir)
