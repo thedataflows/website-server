@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cache"
+	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/pires/go-proxyproto"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -181,7 +182,6 @@ func (srv *FrontendServer) NewFiber() *fiber.App {
 		ReadTimeout:           1 * time.Second,
 		WriteTimeout:          3 * time.Second,
 		DisableStartupMessage: true,
-		ETag:                  true,
 	}
 
 	// Create a new Fiber server.
@@ -196,6 +196,9 @@ func (srv *FrontendServer) NewFiber() *fiber.App {
 		},
 		Expiration:   srv.config.Root.HTTP.CacheExpiration,
 		CacheControl: srv.config.Root.HTTP.CacheControl,
+	}))
+	app.Use(etag.New(etag.Config{
+		Weak: true,
 	}))
 
 	// Handle static files.
