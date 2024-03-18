@@ -181,6 +181,7 @@ func (srv *FrontendServer) NewFiber() *fiber.App {
 		ReadTimeout:           1 * time.Second,
 		WriteTimeout:          3 * time.Second,
 		DisableStartupMessage: true,
+		ETag:                  true,
 	}
 
 	// Create a new Fiber server.
