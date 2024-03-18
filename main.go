@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cache"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/etag"
 	"github.com/pires/go-proxyproto"
 	"github.com/rs/zerolog"
@@ -199,6 +200,9 @@ func (srv *FrontendServer) NewFiber() *fiber.App {
 	}))
 	app.Use(etag.New(etag.Config{
 		Weak: true,
+	}))
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed, // 1
 	}))
 
 	// Handle static files.
