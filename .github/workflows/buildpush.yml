@@ -41,4 +41,4 @@ jobs:
           context: .
           build-args: VERSION=${{ steps.docker_tag.outputs.tag }}
           push: true
-          tags: ghcr.io/${{ github.repository }}/website-server:${{ steps.docker_tag.outputs.tag }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.docker_tag.outputs.tag }}
