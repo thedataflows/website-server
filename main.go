@@ -114,7 +114,8 @@ func fiberResponse(c *fiber.Ctx, status int, message, format string) error {
 
 func buildTemplateMap(c *fiber.Ctx, fieldsMap map[string]string, format string) map[string]string {
 	m := make(map[string]string)
-	m["SiteURL"] = c.Hostname()
+	m["_SiteURL"] = c.Hostname()
+	m["_IP"] = c.IP()
 
 	re, _ := regexp.Compile(EMAIL_REGEX)
 

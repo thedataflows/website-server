@@ -24,7 +24,8 @@ routes:
   - path: /contact
     method: POST
     mail_template: |
-      Site: {{.SiteURL}}<br/>
+      Site: {{._SiteURL}}<br/>
+      IP: {{._IP}}<br/>
       Name: {{.UserName}}<br/>
       Email: {{.UserEmail}}<br/>
       Message: {{.UserMessage}}
