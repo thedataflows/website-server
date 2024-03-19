@@ -39,4 +39,4 @@ routes:
       UserEmail: email
       UserMessage: message
     response_html_tag: |
-      <div><h4>%s</h4></div>
+      <div class="flex items-center justify-center"><h4>%s</h4></div>
