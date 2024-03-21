@@ -2,6 +2,8 @@
 
 Basic and opinionated website server with email sending capabilities for endpoints like contact forms.
 
+It can be used for simple presentation websites, landing pages, or any other static website that needs a contact form.
+
 ## Usage
 
 ```ini
@@ -9,10 +11,11 @@ usage: ws [<flags>]
 
 Website Server with basic email client for contact forms
 
+
 Flags:
   -h, --[no-]help             Show context-sensitive help (also try --help-long
                               and --help-man).
-      --config="config.yaml"  Path to the configuration file ($WS_CONFIG)
+  -c, --config="config.yaml"  Path to the configuration file ($WS_CONFIG)
       --mail-url=""           URL for the mail server ($WS_MAIL_URL)
       --mail-username=""      Username for the mail server ($WS_MAIL_USERNAME)
       --mail-password=""      Password for the mail server ($WS_MAIL_PASSWORD)
