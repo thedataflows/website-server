@@ -55,14 +55,13 @@ tasks:
       - |
         PATH="../bin{{.PD}}$PATH"
         goreleaser build --clean --snapshot --single-target --id "." --output ./bin/ws{{.EXE}}
-
   run:
     desc: "Run the app in development mode"
     cmds:
       - task: start_mailpit
       - |
         PATH="../bin{{.PD}}$PATH"
-        go run .
+        go run . {{.CLI_ARGS}}
   lint:
     desc: "Run linters"
     deps:
