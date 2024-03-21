@@ -46,14 +46,21 @@ type RouteConfig struct {
 	MailTo            []string          `yaml:"mail_to,omitempty"`
 	MailFrom          string            `yaml:"mail_from,omitempty"`
 	FormFieldsMapping map[string]string `yaml:"form_fields_mapping,omitempty"`
-	ResponseHTMLTag   string            `yaml:"response_html_tag,omitempty"`
+	Response          ResponseConfig    `yaml:"response,omitempty"`
+}
+
+type ResponseConfig struct {
+	HTMLTag    string `yaml:"html_tag,omitempty"`
+	Success    string `yaml:"success,omitempty"`
+	Validation string `yaml:"validation,omitempty"`
+	Failure    string `yaml:"failure,omitempty"`
 }
 
 // NewConfig creates a new app configuration.
 func NewConfig() *Config {
 	app := kingpin.New("ws", "Website Server with basic email client for contact forms").DefaultEnvars()
 
-	configFile := app.Flag("config", "Path to the configuration file").Default("config.yaml").String()
+	configFile := app.Flag("config", "Path to the configuration file").Short('c').Default("config.yaml").String()
 	mailURL := app.Flag("mail-url", "URL for the mail server").Default("").String()
 	mailUsername := app.Flag("mail-username", "Username for the mail server").Default("").String()
 	mailPassword := app.Flag("mail-password", "Password for the mail server").Default("").String()

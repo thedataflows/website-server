@@ -112,17 +112,16 @@ func fiberResponse(c *fiber.Ctx, status int, message, format string) error {
 	return nil
 }
 
-func buildTemplateMap(c *fiber.Ctx, fieldsMap map[string]string, format string) map[string]string {
+func (rs *routeSpec) buildTemplateMap(c *fiber.Ctx, fieldsMap map[string]string, format string) map[string]string {
 	m := make(map[string]string)
 	m["_SiteURL"] = c.Hostname()
 	m["_IP"] = c.IP()
 
 	re, _ := regexp.Compile(EMAIL_REGEX)
-
 	for k, v := range fieldsMap {
 		m[k] = strings.TrimSpace(c.FormValue(v))
 		if len(m[k]) == 0 || len(m[k]) > MAX_FIELD_LEN {
-			_ = fiberResponse(c, ErrInvalidInput.Code, ErrInvalidInput.Message, format)
+			_ = fiberResponse(c, ErrInvalidInput.Code, rs.routeConfig.Response.Validation, format)
 			return nil
 		}
 		// special case for email
@@ -132,7 +131,7 @@ func buildTemplateMap(c *fiber.Ctx, fieldsMap map[string]string, format string) 
 			// Validate email using regex
 			if !re.MatchString(m[k]) {
 				// Do not give specific feedback on purpose to avoid leaking information.
-				_ = fiberResponse(c, http.StatusInternalServerError, ErrInvalidInput.Message, format)
+				_ = fiberResponse(c, http.StatusInternalServerError, rs.routeConfig.Response.Validation, format)
 				return nil
 			}
 		}
@@ -147,11 +146,10 @@ func (rs *routeSpec) postHandler(c *fiber.Ctx) error {
 		return err
 	}
 
-	templateMap := buildTemplateMap(c, rs.routeConfig.FormFieldsMapping, rs.routeConfig.ResponseHTMLTag)
+	templateMap := rs.buildTemplateMap(c, rs.routeConfig.FormFieldsMapping, rs.routeConfig.Response.HTMLTag)
 	if templateMap == nil {
 		return nil
 	}
-	sendFailedMsg := "Failed to send message"
 	// Send the contact email
 	msg, err := rs.mailSender.NewMessageFromTemplate(
 		fmt.Sprintf("%s - %s", rs.routeConfig.MailSubject, rs.parent.config.Root.Host),
@@ -163,18 +161,18 @@ func (rs *routeSpec) postHandler(c *fiber.Ctx) error {
 	if err != nil {
 		rs.parent.logger.
 			Err(err).
-			Msg(sendFailedMsg)
+			Msg(rs.routeConfig.Response.Failure)
 		return err
 	}
 	err = rs.mailSender.SendMail(msg)
 	if err != nil {
 		rs.parent.logger.
 			Err(err).
-			Msg(sendFailedMsg)
-		return fiberResponse(c, http.StatusInternalServerError, sendFailedMsg, rs.routeConfig.ResponseHTMLTag)
+			Msg(rs.routeConfig.Response.Failure)
+		return fiberResponse(c, http.StatusInternalServerError, rs.routeConfig.Response.Failure, rs.routeConfig.Response.HTMLTag)
 	}
 
-	return fiberResponse(c, http.StatusOK, "Message sent successfully!", rs.routeConfig.ResponseHTMLTag)
+	return fiberResponse(c, http.StatusOK, rs.routeConfig.Response.Success, rs.routeConfig.Response.HTMLTag)
 }
 
 // NewFiber creates a new Fiber app with optional Fiber configurations: if specified, only the first one is used.

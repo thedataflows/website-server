@@ -1,18 +1,18 @@
 ## Website Hostname, default `localhost`
-host: example.com
-static_dir: ./static
+host: "example.com"
+static_dir: "./static"
 
 ## Http settings
 http:
   listen_on: ":3000"
   use_proxyproto: true
-  not_found: /404.html
-  cache_expiration: 24h
+  not_found: "/404.html"
+  cache_expiration: "24h"
   cache_control: true
 
 ## Mail settings
 mail:
-  mail_url: smtp://localhost:1025
+  mail_url: "smtp://localhost:1025"
   mail_tls_skip_verify: true
   ## For better security, set env MAIL_USERNAME
   # mail_username: user
@@ -21,8 +21,8 @@ mail:
 
 ## Server routes
 routes:
-  - path: /contact
-    method: POST
+  - path: "/contact"
+    method: "POST"
     mail_template: |
       Site: {{._SiteURL}}<br/>
       IP: {{._IP}}<br/>
@@ -31,12 +31,16 @@ routes:
       Message: {{.UserMessage}}
     # mail_template_file: contact.html
     mail_subject: "Contact Form"
-    mail_from: no-reply@example.com
+    mail_from: "no-reply@example.com"
     mail_to:
       - contact@example.com
     form_fields_mapping:
       UserName: name
       UserEmail: email
       UserMessage: message
-    response_html_tag: |
-      <div class="flex items-center justify-center"><h4>%s</h4></div>
+    response:
+      html_tag: |
+        <div class="flex items-center justify-center"><h4>%s</h4></div>
+      success: "Message sent successfully"
+      validation: "Validation failed"
+      error: "Failed to send message"
