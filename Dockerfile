@@ -8,11 +8,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   go build -trimpath -ldflags "-s -w -X=main.version=${VERSION}" -o ./ws
 
 ## build final image
-FROM alpine:3.19
+FROM alpine:3.24
 WORKDIR /app
 COPY --from=gobuilder /app/ws .
 COPY config.yaml .
-RUN apk add --no-cache gcompat && chown -R nobody:nobody /app
+RUN apk add --no-cache gcompat
 EXPOSE 3000
 USER nobody
 CMD ["./ws"]
