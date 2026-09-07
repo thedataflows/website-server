@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -237,24 +239,59 @@ func (srv *FrontendServer) NewFiber() *fiber.App {
 }
 
 // Listen runs the server with optional Fiber configurations: if specified, only the first one is used.
-func (srv *FrontendServer) Listen() (*fiber.App, error) {
+// It starts the listener in a goroutine and returns the app along with a channel
+// that receives the listener's terminal error (e.g. bind failure or shutdown error).
+func (srv *FrontendServer) Listen() (*fiber.App, <-chan error) {
 	app := srv.NewFiber()
+	errCh := make(chan error, 1)
+
+	serve := func(ln net.Listener) {
+		var err error
+		if ln != nil {
+			err = app.Listener(ln)
+		} else {
+			err = app.Listen(srv.config.Root.HTTP.ListenOn)
+		}
+		if err != nil {
+			errCh <- err
+		}
+		close(errCh)
+	}
 
 	if srv.config.Root.HTTP.UseProxyProto {
 		listener, err := net.Listen("tcp", srv.config.Root.HTTP.ListenOn)
 		if err != nil {
-			return nil, err
+			errCh <- err
+			close(errCh)
+			return app, errCh
 		}
-		listener = &proxyproto.Listener{
+		go serve(&proxyproto.Listener{
 			Listener:          listener,
 			ReadHeaderTimeout: 1 * time.Second,
-		}
-		err = app.Listener(listener)
-		return app, err
+		})
+		return app, errCh
 	}
 
-	err := app.Listen(srv.config.Root.HTTP.ListenOn)
-	return app, err
+	go serve(nil)
+	return app, errCh
+}
+
+// reload gracefully shuts down the running app, reloads the configuration
+// and static content, and re-listens — without restarting the process.
+func (srv *FrontendServer) reload(app *fiber.App) (*fiber.App, <-chan error, error) {
+	srv.logger.Info().Msg("received SIGHUP, reloading configuration")
+
+	if err := app.ShutdownWithTimeout(5 * time.Second); err != nil {
+		srv.logger.Warn().Err(err).Msg("graceful shutdown timed out")
+	}
+
+	if err := srv.config.Reload(); err != nil {
+		return nil, nil, fmt.Errorf("failed to reload config: %w", err)
+	}
+
+	srv.logger.Info().Msgf("Reloaded configuration, re-listening on '%s'", srv.config.Root.HTTP.ListenOn)
+	newApp, errCh := srv.Listen()
+	return newApp, errCh, nil
 }
 
 // main is the entry point of the application.
@@ -273,8 +310,26 @@ func main() {
 	}
 
 	srv.logger.Info().Msgf("Starting website server '%s' '%s' on '%s'", config.Root.Host, version, config.Root.HTTP.ListenOn)
-	_, err := srv.Listen()
-	if err != nil {
-		srv.logger.Fatal().Err(err).Msg("failed to start server")
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGHUP)
+
+	app, errCh := srv.Listen()
+	for {
+		select {
+		case <-sig:
+			newApp, newErrCh, err := srv.reload(app)
+			if err != nil {
+				srv.logger.Error().Err(err).Msg("reload failed, server is stopped")
+				return
+			}
+			app, errCh = newApp, newErrCh
+		case err, ok := <-errCh:
+			if !ok {
+				// Listener closed after a reload shutdown.
+				continue
+			}
+			srv.logger.Fatal().Err(err).Msg("failed to start server")
+		}
 	}
 }

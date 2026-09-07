@@ -13,3 +13,4 @@ bin/
 static/
 public/
 node_modules/
+/website-server

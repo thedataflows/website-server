@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -11,6 +12,12 @@ import (
 type Config struct {
 	App  *kingpin.Application
 	Root *RootConfig
+	// File is the path of the configuration file, kept for reloading.
+	File string
+	// CLI flag overrides, re-applied on every reload.
+	mailURL      string
+	mailUsername string
+	mailPassword string
 }
 
 type RootConfig struct {
@@ -70,26 +77,46 @@ func NewConfig() *Config {
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	config := &Config{
-		App: app,
+		App:          app,
+		File:         *configFile,
+		mailURL:      *mailURL,
+		mailUsername: *mailUsername,
+		mailPassword: *mailPassword,
 	}
 
-	if len(*configFile) > 0 {
-		if err := config.LoadFromYAML(*configFile); err != nil {
+	if len(config.File) > 0 {
+		if err := config.LoadFromYAML(config.File); err != nil {
 			app.Fatalf("failed to load config file: %s", err)
 		}
 	}
-
-	if len(*mailUsername) > 0 {
-		config.Root.Mail.MailUsername = *mailUsername
-	}
-	if len(*mailPassword) > 0 {
-		config.Root.Mail.MailPassword = *mailPassword
-	}
-	if len(*mailURL) > 0 {
-		config.Root.Mail.MailURL = *mailURL
-	}
+	config.applyOverrides()
 
 	return config
+}
+
+// Reload re-reads the configuration file and re-applies the CLI flag overrides.
+func (c *Config) Reload() error {
+	if len(c.File) == 0 {
+		return fmt.Errorf("no config file to reload")
+	}
+	if err := c.LoadFromYAML(c.File); err != nil {
+		return err
+	}
+	c.applyOverrides()
+	return nil
+}
+
+// applyOverrides applies CLI flag overrides on top of the loaded configuration.
+func (c *Config) applyOverrides() {
+	if len(c.mailUsername) > 0 {
+		c.Root.Mail.MailUsername = c.mailUsername
+	}
+	if len(c.mailPassword) > 0 {
+		c.Root.Mail.MailPassword = c.mailPassword
+	}
+	if len(c.mailURL) > 0 {
+		c.Root.Mail.MailURL = c.mailURL
+	}
 }
 
 // LoadFromYAML loads the root configuration from a YAML file.
