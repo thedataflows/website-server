@@ -1,5 +1,5 @@
 ## build go binary
-FROM golang:1.22-bullseye as gobuilder
+FROM golang:1.27-alpine AS gobuilder
 ARG VERSION=dev
 WORKDIR /app
 COPY . .
@@ -12,7 +12,7 @@ FROM alpine:3.19
 WORKDIR /app
 COPY --from=gobuilder /app/ws .
 COPY config.yaml .
-RUN apk add --no-cache gcompat
+RUN apk add --no-cache gcompat && chown -R nobody:nobody /app
 EXPOSE 3000
 USER nobody
 CMD ["./ws"]

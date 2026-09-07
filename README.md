@@ -24,7 +24,7 @@ Flags:
 
 ## Development
 
-- go 1.22
+- go 1.27
 - [mailpit](https://github.com/axllent/mailpit) (for testing emails)
 - docker/podman or compatible
 - [task](https://taskfile.dev)
